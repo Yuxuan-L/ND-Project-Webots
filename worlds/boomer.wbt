@@ -1,0 +1,57 @@
+#VRML_SIM R2019b utf8
+WorldInfo {
+  info [
+    "Boomer 3050 Tractor"
+  ]
+  title "Boomer 3050 Tractor"
+  ERP 0.7
+  physics "tractor_physics"
+  basicTimeStep 20
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      material1 "soil"
+      material2 "rearTireMaterial"
+      softCFM 0.0001
+    }
+    ContactProperties {
+      material1 "soil"
+      material2 "frontTireMaterial"
+      softCFM 0.0001
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.471868105613887 0.8652796507399857 0.16920879681520737 5.442532170973507
+  position -24.774852599351902 20.213259101649935 33.05424204669844
+  followSmoothness 0
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF FLOOR Solid {
+  children [
+    DEF PLANE_SHAPE Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/dry_grass.jpg"
+          ]
+        }
+        roughness 1
+        metalness 0
+        textureTransform TextureTransform {
+          scale 200 200
+        }
+      }
+      geometry Plane {
+        size 1000 1000
+      }
+      castShadows FALSE
+    }
+  ]
+  contactMaterial "soil"
+  boundingObject USE PLANE_SHAPE
+}
+}

@@ -1,0 +1,96 @@
+#VRML_SIM R2019b utf8
+WorldInfo {
+  info [
+    "Boomer 3050 Tractor"
+  ]
+  title "Boomer 3050 Tractor"
+  ERP 0.7
+  physics "tractor_physics"
+  basicTimeStep 20
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      material1 "soil"
+      material2 "frontTireMaterial"
+      softCFM 0
+    }
+    ContactProperties {
+      material1 "soil"
+      material2 "rearTireMaterial"
+      softCFM 0
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.13572587362537814 0.9802126164112119 0.14408925656312596 1.5794010401715617
+  position 9.499907853536367 5.428808854731175 0.6386995897081111
+  follow "vehicle"
+  followSmoothness 0
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF FLOOR Solid {
+  children [
+    DEF PLANE_SHAPE Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/dry_grass.jpg"
+          ]
+        }
+        roughness 1
+        metalness 0
+        textureTransform TextureTransform {
+          scale 200 200
+        }
+      }
+      geometry Plane {
+        size 1000 1000
+      }
+      castShadows FALSE
+    }
+  ]
+  contactMaterial "soil"
+  boundingObject USE PLANE_SHAPE
+}
+DEF TRACTOR Tractor {
+  translation -2.154595 2.29751 0
+  rotation 0 0 -1 0.0707971
+  controller "Tractor_control"
+  sensorSlot [
+    Camera {
+      translation -8.630814e-10 0.97344943 1.9889894
+      rotation -3.592801893310027e-10 0.9971888181431856 -0.07492970686047722 3.1415926
+      children [
+        Transform {
+          translation 0 0 0.05
+          rotation 1 0 0 1.5708
+          children [
+            Shape {
+              appearance PBRAppearance {
+                roughness 1
+                metalness 0
+              }
+              geometry Cylinder {
+                height 0.1
+                radius 0.04
+              }
+            }
+          ]
+        }
+      ]
+      fieldOfView 1
+      width 128
+    }
+    SickLms291 {
+      translation -2.4859527e-10 0.57400942 2.311692
+      rotation 0 0.9975390707399396 -0.07011278305200722 3.1415926
+    }
+    GPS {
+    }
+    Gyro {
+    }
+  ]
+}

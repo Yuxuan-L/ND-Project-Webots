@@ -1,0 +1,11 @@
+Webots Proto Cache File version 1.4
+protoFileHash: 875b48e453689754afb11273eba2a652
+containsDevices: 1
+baseType: Robot
+slotType: 
+parameters: translation,rotation,color,name,controller,controllerArgs,synchronization,sensorSlot,wheelFrontRight,wheelFrontLeft,wheelRearRight,wheelRearLeft
+tags: static
+license:  Copyright Cyberbotics Ltd. Licensed for use only with Webots.
+licenseUrl:  https://cyberbotics.com/webots_assets_license
+documentationUrl: https://www.cyberbotics.com/doc/automobile/car
+info: A\ssimple\stractor.\n
