@@ -84,10 +84,11 @@ void webots_physics_step() {
    */
   
   f[0] = 0;
-  f[1] = (dReal)10000;
-  f[2] = (dReal)0;
+  f[1] = (dReal)0;
+  f[2] = (dReal)10000;
 
-  //dBodyAddRelForce(gRobotBody, f[0], f[1], f[2]);
+  //dBodyAddRelForce(frontRightWheelBody, f[0], f[1], f[2]);
+  //dBodyAddRelForce(frontLeftWheelBody, f[0], f[1], f[2]);
 }
 
 int webots_physics_collide(dGeomID g1, dGeomID g2) {
