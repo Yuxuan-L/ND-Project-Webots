@@ -12,18 +12,20 @@ WorldInfo {
     ContactProperties {
       material1 "soil"
       material2 "frontTireMaterial"
+      bounce 0
       softCFM 0
     }
     ContactProperties {
       material1 "soil"
       material2 "rearTireMaterial"
+      bounce 0
       softCFM 0
     }
   ]
 }
 Viewpoint {
-  orientation -0.13572587362537814 0.9802126164112119 0.14408925656312596 1.5794010401715617
-  position 9.499907853536367 5.428808854731175 0.6386995897081111
+  orientation -0.04899344827857298 0.9980164702359918 0.03953184998790833 1.0422274233329407
+  position 7.904718828557237 4.464921417294925 7.08243039492775
   follow "vehicle"
   followSmoothness 0
 }

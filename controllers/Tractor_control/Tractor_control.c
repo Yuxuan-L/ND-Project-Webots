@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
   while (wb_robot_step(time_step) != -1) {
     // get user input
     check_keyboard();
-    print_speed_torque();
+    //print_speed_torque();
 
     // read sensors
      const unsigned char *camera_image = wb_camera_get_image(camera);

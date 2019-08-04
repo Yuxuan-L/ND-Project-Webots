@@ -7,5 +7,5 @@ centralWidgetVisible: 1
 selectionDisabled: 0
 viewpointLocked: 0
 orthographicViewHeight: 1
-textFiles: 1 "plugins/physics/tractor_physics/tractor_physics.cpp" "controllers/Tractor_control/Tractor_control.c"
+textFiles: 1 "controllers/Tractor_control/Tractor_control.c" "plugins/physics/tractor_physics/tractor_physics.cpp"
 renderingDevicePerspectives: vehicle:camera;1;1;0;0
