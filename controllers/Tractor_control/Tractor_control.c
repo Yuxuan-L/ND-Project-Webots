@@ -27,6 +27,7 @@
 #include <webots/lidar.h>
 #include <webots/motor.h>
 #include <webots/robot.h>
+#include <webots/emitter.h>
 
 // to be used as array indices
 enum { X, Y, Z };
@@ -34,6 +35,8 @@ enum { X, Y, Z };
 // This needs to be changed if the .wbt model changes
 #define FRONT_WHEEL_RADIUS 0.38
 #define REAR_WHEEL_RADIUS 0.6
+
+double wheel_torque[4];
 
 // devices
 WbDeviceTag left_steer, right_steer;
@@ -61,6 +64,9 @@ WbDeviceTag gps;
 double gps_coords[3];
 double gps_speed = 0.0;
 
+//Emitter
+WbDeviceTag emitter;
+
 // misc variables
 int time_step = -1;
 double speed = 0.0;
@@ -70,7 +76,7 @@ double torque = 0.0; //Added by NERanger 20190731
 
 //Debug parameters 
 //Added by NERanger 20190731
-double left_front_wheel_torque_feedback     = 0, 
+double  left_front_wheel_torque_feedback    = 0, 
         right_front_wheel_torque_feedback   = 0,
         left_rear_wheel_torque_feedback     = 0,
         right_rear_wheel_torque_feedback    = 0,
@@ -78,8 +84,15 @@ double left_front_wheel_torque_feedback     = 0,
         left_front_wheel_velocity_feedback  = 0,
         right_front_wheel_velocity_feedback = 0,
         left_rear_wheel_velocity_feedback   = 0,
-        right_rear_wheel_velocity_feedback = 0;
+        right_rear_wheel_velocity_feedback  = 0;
 
+
+void update_emitter_send_info(){
+  wheel_torque[0] = left_front_wheel_torque_feedback;
+  wheel_torque[1] = right_front_wheel_torque_feedback;
+  wheel_torque[2] = left_rear_wheel_torque_feedback;
+  wheel_torque[3] = right_rear_wheel_torque_feedback;
+}
 
 void blink_lights() {
   int on = (int)wb_robot_get_time() % 2;
@@ -118,11 +131,9 @@ void set_speed(double kmh) {
 
 void set_torque(double torq) {
 
-  double left_front_wheel_velocity_feedback = 0;
-
   torque = torq;
 
-  printf("setting torque to %g N*m\n", torq);
+  //printf("setting torque to %g N*m\n", torq);
 
   wb_motor_set_torque(left_front_wheel,torq);
   wb_motor_set_torque(right_front_wheel,torq);
@@ -155,12 +166,12 @@ void check_keyboard() {
   int key = wb_keyboard_get_key();
   switch (key) {
     case WB_KEYBOARD_UP:
-      //set_speed(speed + 1.0);
-      set_torque(torque + 1.0);
+      set_speed(speed + 1.0);
+      //set_torque(torque + 1.0);
       break;
     case WB_KEYBOARD_DOWN:
-      //set_speed(speed - 1.0);
-      set_torque(torque - 1.0);
+      set_speed(speed - 1.0);
+      //set_torque(torque - 1.0);
       break;
     case ' ':
       set_speed(0.0);
@@ -190,17 +201,20 @@ void get_speed_torque() {
 
   left_front_wheel_torque_feedback  = wb_motor_get_torque_feedback(left_front_wheel);
   right_front_wheel_torque_feedback = wb_motor_get_torque_feedback(right_front_wheel);
-  left_rear_wheel_torque_feedback   = wb_motor_get_torque_feedback(right_front_wheel);
-  right_rear_wheel_torque_feedback  = wb_motor_get_torque_feedback(right_front_wheel);
+  left_rear_wheel_torque_feedback   = wb_motor_get_torque_feedback(left_rear_wheel);
+  right_rear_wheel_torque_feedback  = wb_motor_get_torque_feedback(right_rear_wheel);
 
   left_front_wheel_velocity_feedback = wb_motor_get_velocity(left_front_wheel);
-  right_front_wheel_velocity_feedback = wb_motor_get_velocity(left_front_wheel);
-  left_rear_wheel_velocity_feedback = wb_motor_get_velocity(left_front_wheel);
-  right_rear_wheel_velocity_feedback = wb_motor_get_velocity(left_front_wheel);
+  right_front_wheel_velocity_feedback = wb_motor_get_velocity(right_front_wheel);
+  left_rear_wheel_velocity_feedback = wb_motor_get_velocity(left_rear_wheel);
+  right_rear_wheel_velocity_feedback = wb_motor_get_velocity(right_rear_wheel);
+
+  update_emitter_send_info();
+  wb_emitter_send(emitter, wheel_torque, sizeof(wheel_torque));
 }
 
 void print_speed_torque() {
-  printf("left_front_wheel-Current torque: %g ,Current velocity: %g\n", left_front_wheel_torque_feedback, left_front_wheel_velocity_feedback);
+  //printf("left_front_wheel-Current torque: %g ,Traget velocity: %g rad/s\n", left_front_wheel_torque_feedback, left_front_wheel_velocity_feedback);
 }
 
 int main(int argc, char **argv) {
@@ -213,10 +227,10 @@ int main(int argc, char **argv) {
   right_front_wheel = wb_robot_get_device("right_front_wheel");
   left_rear_wheel = wb_robot_get_device("left_rear_wheel");
   right_rear_wheel = wb_robot_get_device("right_rear_wheel");
-  //wb_motor_set_position(left_front_wheel, INFINITY);
-  //wb_motor_set_position(right_front_wheel, INFINITY);
-  //wb_motor_set_position(left_rear_wheel, INFINITY);
-  //wb_motor_set_position(right_rear_wheel, INFINITY);  //Commented by NERanger 20190731
+  wb_motor_set_position(left_front_wheel, INFINITY);
+  wb_motor_set_position(right_front_wheel, INFINITY);
+  wb_motor_set_position(left_rear_wheel, INFINITY);
+  wb_motor_set_position(right_rear_wheel, INFINITY); 
   wb_motor_enable_torque_feedback(left_front_wheel, time_step);
   wb_motor_enable_torque_feedback(right_front_wheel, time_step);
   wb_motor_enable_torque_feedback(left_rear_wheel, time_step);
@@ -251,6 +265,11 @@ int main(int argc, char **argv) {
   work_head_lights = wb_robot_get_device("work_head_lights");
   road_head_lights = wb_robot_get_device("road_head_lights");
 
+  //
+  emitter = wb_robot_get_device("emitter");
+  if (!emitter)
+    printf("!!! emitter is not available.\n");
+
   // start engine
   set_speed(0.0);  // km/h
 
@@ -263,7 +282,8 @@ int main(int argc, char **argv) {
   while (wb_robot_step(time_step) != -1) {
     // get user input
     check_keyboard();
-    //print_speed_torque();
+    get_speed_torque();
+    print_speed_torque();
 
     // read sensors
      const unsigned char *camera_image = wb_camera_get_image(camera);

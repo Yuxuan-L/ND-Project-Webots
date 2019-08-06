@@ -9,4 +9,5 @@ build/release/Tractor_control.o: Tractor_control.c \
  E:\Program\Webots/include/controller/c/webots/lidar_point.h \
  E:\Program\Webots/include/controller/c/webots/motor.h \
  E:\Program\Webots/include/controller/c/webots/robot.h \
- E:\Program\Webots/include/controller/c/webots/nodes.h
+ E:\Program\Webots/include/controller/c/webots/nodes.h \
+ E:\Program\Webots/include/controller/c/webots/emitter.h

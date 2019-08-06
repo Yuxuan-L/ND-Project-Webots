@@ -1,9 +1,19 @@
 /*
  * File: tractor_physics.cpp
  * Date: 2019.8.1
- * Description: physics plugin for Webots simulation
+ * Description: physics plugin for Webots simulation 
  * Author: Yonglin Jing
  * E-mail: 11712605@mail.sustech.edu.cn
+ */
+
+/*
+ * Note: This plugin will become operational only after it was compiled and associated with the current world (.wbt).
+ * To associate this plugin with the world follow these steps:
+ *  1. In the Scene Tree, expand the "WorldInfo" node and select its "physics" field
+ *  2. Then hit the [Select] button at the bottom of the Scene Tree
+ *  3. In the list choose the name of this plugin (same as this file without the extention)
+ *  4. Then save the .wbt by hitting the "Save" button in the toolbar of the 3D view
+ *  5. Then reload the world: the plugin should now load and execute with the current simulation
  */
 
 #include <ode/ode.h>
@@ -45,43 +55,27 @@ typedef struct{
 #define SINKAGE_EXP 0.8f
 
 // Vehivle specification
-#define VEHICLE_LOAD 103f  //kg
+#define VEHICLE_LOAD 103.0f  //kg
 #define FRONT_WHEEL_RADIUS 0.38
 #define FRONT_WHEEL_WIDTH  0.19
 #define REAR_WHEEL_RADIUS  0.6
 #define REAR_WHEEL_WIDTH   0.37
+#define WHEEL_LOAD_CONSTANT
 #define THETA_CONSTANT 0.523598  // pi/6
+#define CONE_INDEX_CONSTANT 1000000.0f    //If known, just set it here
 
 static wheel_t front_right_w, front_left_w, rear_right_w, rear_left_w;
 static double cone_index = 0.0;
 
-//static pthread_mutex_t mutex; // needed to run with multi-threaded version of ODE
-
-//Need to put Body and Geom into wheel_t, set the wheel instance into a vector
-//static dBodyID frontRightWheelBody = NULL, frontLeftWheelBody = NULL, 
-//                rearRightWheelBody = NULL, rearLeftWheelBody = NULL;
-
-//static dGeomID frontRightWheelGeom = NULL, frontLeftWheelGeom = NULL,
-//                rearRightWheelGeom = NULL, rearLeftWheelGeom  = NULL;
-
 static dBodyID floorBody = NULL;
 static dGeomID floorGeom = NULL;
 
-static pthread_mutex_t mutex;
+static pthread_mutex_t mutex;  // needed to run with multi-threaded version of ODE
 
 dVector3 f;
 
-/*
- * Note: This plugin will become operational only after it was compiled and associated with the current world (.wbt).
- * To associate this plugin with the world follow these steps:
- *  1. In the Scene Tree, expand the "WorldInfo" node and select its "physics" field
- *  2. Then hit the [Select] button at the bottom of the Scene Tree
- *  3. In the list choose the name of this plugin (same as this file without the extention)
- *  4. Then save the .wbt by hitting the "Save" button in the toolbar of the 3D view
- *  5. Then reload the world: the plugin should now load and execute with the current simulation
- */
-
-inline double cone_index_calc(double r,   //wheel radius  which??????????
+//Note that cone index is not decided by radius and theta1
+inline double cone_index_calc(double r,   //wheel radius
                               double t,   //theta1, dependent on load, or use pre-calculated THETA_CONSTANT
                               double kc,  //cohesion modulus of deformation
                               double se,  //sinkage exponent
@@ -130,7 +124,7 @@ inline double tractive_efficiency_calc(double dp,  //drawbar pull
   return dp*vx/t/w;
 }
 
-void parameter_init() {
+void wheel_parameter_init() {
   front_right_w.wheel_r = FRONT_WHEEL_RADIUS;
   front_right_w.wheel_w = FRONT_WHEEL_WIDTH;
 
@@ -143,70 +137,10 @@ void parameter_init() {
   rear_left_w.wheel_r   = REAR_WHEEL_RADIUS;
   rear_left_w.wheel_w   = REAR_WHEEL_WIDTH;
 
-  cone_index = cone_index_calc();
-}
+  //If cone index is known then there is no need to use the calculate function
+  cone_index = CONE_INDEX_CONSTANT;
 
-void wheel_mechanics_calc(wheel_t* wheel){
-  //Note that claculation order should not be changed
-
-  wheel->mechanics.slip_ratio = slip_ratio_calc(wheel->wheel_r, 
-                                                wheel->wheel_w, 
-                                                wheel->horiz_vel);
-
-  wheel->mechanics.wheel_numeric = wheel_numeric_calc(wheel->wheel_w, 
-                                                      wheel->wheel_r, 
-                                                      wheel->load);
-
-  wheel->mechanics.towed_force = towed_force_calc(wheel->load, 
-                                                  wheel->mechanics.wheel_numeric);
-
-  wheel->mechanics.torque = torque_calc(wheel->wheel_r, 
-                                        wheel->load, 
-                                        wheel->mechanics.wheel_numeric, 
-                                        wheel->mechanics.slip_ratio);
-
-  wheel->mechanics.drawbar_pull = drawbar_pull_calc(wheel->mechanics.torque, 
-                                                    wheel->wheel_r, 
-                                                    wheel->mechanics.towed_force);
-
-  wheel->mechanics.trct_effc = tractive_efficiency_calc(wheel->mechanics.drawbar_pull, 
-                                                        wheel->horiz_vel, 
-                                                        wheel->mechanics.torque, 
-                                                        wheel->angular_vel);
-}
-
-void webots_physics_init() {
-  pthread_mutex_init(&mutex, NULL);
-  /*
-   * Get ODE object from the .wbt model, e.g.
-   *   dBodyID body1 = dWebotsGetBodyFromDEF("MY_ROBOT");
-   *   dBodyID body2 = dWebotsGetBodyFromDEF("MY_SOLID");
-   *   dGeomID geom2 = dWebotsGetGeomFromDEF("MY_SOLID");
-   * If an object is not found in the .wbt world, the function returns NULL.
-   * Your code should correcly handle the NULL cases because otherwise a segmentation fault will crash Webots.
-   *
-   * This function is also often used to add joints to the simulation, e.g.
-   *   dWorldID world = dBodyGetWorld(body1);
-   *   pthread_mutex_lock(&mutex);
-   *   dJointID joint = dJointCreateBall(world, 0);
-   *   dJointAttach(joint, body1, body2);
-   *   pthread_mutex_unlock(&mutex);
-   *   ...
-   */
-
-  floorBody = dWebotsGetBodyFromDEF("FLOOR");
-  floorGeom = dWebotsGetGeomFromDEF("FLOOR");
-  
-  if(floorBody == NULL){
-    dWebotsConsolePrintf("!!! error : could not get floorBody.\r\n");
-  }
-  else if(floorGeom == NULL){
-    dWebotsConsolePrintf("!!! error : could not get floorGeom.\r\n");
-  }else {
-    dWebotsConsolePrintf("floor Body&Geom found !\r\n");
-  }
-
-  /*
+   /*
    * TFRW - Tractor Front Right Wheel
    * TFLW - Tractor Front Left  Wheel
    * TRRW - Tractor Rear  Right Wheel
@@ -256,6 +190,106 @@ void webots_physics_init() {
   }else {
     dWebotsConsolePrintf("rearLeftWheel Body&Geom found !\r\n");
   }
+}
+
+void wheel_mechanics_calc(wheel_t* wheel){
+  //Note that claculation order should not be changed
+
+  wheel->mechanics.slip_ratio = slip_ratio_calc(wheel->wheel_r, 
+                                                wheel->wheel_w, 
+                                                wheel->horiz_vel);
+
+  wheel->mechanics.wheel_numeric = wheel_numeric_calc(wheel->wheel_w, 
+                                                      wheel->wheel_r, 
+                                                      wheel->load);
+
+  wheel->mechanics.towed_force = towed_force_calc(wheel->load, 
+                                                  wheel->mechanics.wheel_numeric);
+
+  //wheel->mechanics.torque = torque_calc(wheel->wheel_r, 
+  //                                      wheel->load, 
+  //                                      wheel->mechanics.wheel_numeric, 
+  //                                      wheel->mechanics.slip_ratio);
+
+  wheel->mechanics.drawbar_pull = drawbar_pull_calc(wheel->mechanics.torque, 
+                                                    wheel->wheel_r, 
+                                                    wheel->mechanics.towed_force);
+
+  wheel->mechanics.trct_effc = tractive_efficiency_calc(wheel->mechanics.drawbar_pull, 
+                                                        wheel->horiz_vel, 
+                                                        wheel->mechanics.torque, 
+                                                        wheel->angular_vel);
+}
+
+void wheel_motor_torque_update(double* torque_feedback){
+  front_left_w.mechanics.torque  = torque_feedback[0];
+  front_right_w.mechanics.torque = torque_feedback[1];
+  rear_left_w.mechanics.torque   = torque_feedback[2];
+  rear_right_w.mechanics.torque  = torque_feedback[3];
+
+  //dWebotsConsolePrintf("motor torque update: %f %f %f %f", torque_feedback[0], torque_feedback[1], torque_feedback[2], torque_feedback[3]);
+}
+
+void wheel_angular_vel_update(){
+  const dReal* tmp;
+
+  //coordinate transform required if consider steering
+  tmp = dBodyGetAngularVel(front_right_w.wheel_body);
+  front_right_w.angular_vel = tmp[0];
+  tmp = dBodyGetAngularVel(front_left_w.wheel_body);
+  front_left_w.angular_vel = tmp[0];
+  tmp = dBodyGetAngularVel(rear_right_w.wheel_body);
+  rear_right_w.angular_vel = tmp[0];
+  tmp = dBodyGetAngularVel(rear_left_w.wheel_body);
+  rear_left_w.angular_vel = tmp[0];
+}
+
+void wheel_linear_vel_update(){
+  const dReal* tmp;
+
+  //coordinate transform required if consider steering
+  tmp = dBodyGetLinearVel(front_right_w.wheel_body);
+  front_right_w.horiz_vel = tmp[2];
+  tmp = dBodyGetLinearVel(front_left_w.wheel_body);
+  front_left_w.horiz_vel = tmp[2];
+  tmp = dBodyGetLinearVel(rear_right_w.wheel_body);
+  rear_right_w.horiz_vel = tmp[2];
+  tmp = dBodyGetLinearVel(rear_left_w.wheel_body);
+  rear_left_w.horiz_vel = tmp[2];
+}
+
+void webots_physics_init() {
+  pthread_mutex_init(&mutex, NULL);
+  /*
+   * Get ODE object from the .wbt model, e.g.
+   *   dBodyID body1 = dWebotsGetBodyFromDEF("MY_ROBOT");
+   *   dBodyID body2 = dWebotsGetBodyFromDEF("MY_SOLID");
+   *   dGeomID geom2 = dWebotsGetGeomFromDEF("MY_SOLID");
+   * If an object is not found in the .wbt world, the function returns NULL.
+   * Your code should correcly handle the NULL cases because otherwise a segmentation fault will crash Webots.
+   *
+   * This function is also often used to add joints to the simulation, e.g.
+   *   dWorldID world = dBodyGetWorld(body1);
+   *   pthread_mutex_lock(&mutex);
+   *   dJointID joint = dJointCreateBall(world, 0);
+   *   dJointAttach(joint, body1, body2);
+   *   pthread_mutex_unlock(&mutex);
+   *   ...
+   */
+
+  floorBody = dWebotsGetBodyFromDEF("FLOOR");
+  floorGeom = dWebotsGetGeomFromDEF("FLOOR");
+  
+  if(floorBody == NULL){
+    dWebotsConsolePrintf("!!! error : could not get floorBody.\r\n");
+  }
+  else if(floorGeom == NULL){
+    dWebotsConsolePrintf("!!! error : could not get floorGeom.\r\n");
+  }else {
+    dWebotsConsolePrintf("floor Body&Geom found !\r\n");
+  }
+
+  wheel_parameter_init();
 
 }
 
@@ -265,9 +299,23 @@ void webots_physics_step() {
    *   dBodyAddForce(body1, f[0], f[1], f[2]);
    *   ...
    */
+  
+  double* wheel_torque_feedback;
+  int size;
+  wheel_torque_feedback = (double *)dWebotsReceive(&size);
+  if (size != 4 * sizeof(double)) {
+    dWebotsConsolePrintf("invalid receive buffer length\n");
+    return;
+  }else{
+    wheel_motor_torque_update(wheel_torque_feedback);
+  }
+
+  wheel_angular_vel_update();
+  wheel_linear_vel_update();
+
   pthread_mutex_lock(&mutex);
-  //const dReal* tmp = dBodyGetForce(frontRightWheelBody);
-  //dWebotsConsolePrintf("get load: %f %f %f\r\n", tmp[0], tmp[1], tmp[2]);
+  const dReal* tmp = dBodyGetLinearVel(front_right_w.wheel_body);
+  //dWebotsConsolePrintf("get linear vel: %f %f %f\r\n", tmp[0], tmp[1], tmp[2]);
   pthread_mutex_unlock(&mutex);
 
 
